@@ -1,0 +1,13 @@
+{
+  "name": "Storyteller",
+  "description": "Narrative-driven style - engaging stories, emotional connection, relatable",
+  "benchmarkVideos": [
+    "story_tech.mp4"
+  ],
+  "traits": {
+    "energy": "moderate",
+    "pace": "varied",
+    "gestures": "expressive",
+    "tone": "warm"
+  }
+}

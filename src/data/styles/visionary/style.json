@@ -1,0 +1,14 @@
+{
+  "name": "Visionary",
+  "description": "Steve Jobs visionary keynote style - inspiring, groundbreaking, future-focused",
+  "benchmarkVideos": [
+    "jobs_iphone.mp4",
+    "jobs_ipod_launch.mp4"
+  ],
+  "traits": {
+    "energy": "high",
+    "pace": "measured",
+    "gestures": "broad",
+    "tone": "passionate"
+  }
+}

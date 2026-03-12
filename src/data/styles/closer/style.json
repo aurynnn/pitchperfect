@@ -1,0 +1,13 @@
+{
+  "name": "Closer",
+  "description": "Sales closer style - confident, persuasive, action-oriented",
+  "benchmarkVideos": [
+    "sales_closer.mp4"
+  ],
+  "traits": {
+    "energy": "high",
+    "pace": "fast",
+    "gestures": "precise",
+    "tone": "confident"
+  }
+}
