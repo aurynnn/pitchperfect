@@ -5,11 +5,25 @@ import { cosineSimilarity, calculateDrift, analyzeSegmentStrength } from '../../
 import { generateFeedback } from '../../lib/feedback/rules';
 import { analyzeGestures } from '../../lib/analysis/gestures';
 import { analyzeKeywords } from '../../lib/analysis/keywords';
+import mongoose from 'mongoose';
+import { PitchSession } from '../../lib/models/PitchSession';
 import fs from 'node:fs';
+
+const MONGODB_URI = import.meta.env.MONGODB_URI;
 import path from 'node:path';
 
 export const POST = async ({ request }) => {
   try {
+    // Connect to MongoDB
+    if (MONGODB_URI && mongoose.connection.readyState !== 1) {
+      try {
+        await mongoose.connect(MONGODB_URI);
+        console.log('📊 Connected to MongoDB');
+      } catch (mongoError) {
+        console.log('MongoDB connection failed, continuing without DB');
+      }
+    }
+    
     const formData = await request.formData();
     const videoFile = formData.get('video') as File;
     const styleId = formData.get('styleId') as string;
@@ -105,11 +119,40 @@ export const POST = async ({ request }) => {
           { axis: 'Gestures', value: gestureAnalysis.overallScore * 100 },
           { axis: 'Emotional', value: 70 + Math.random() * 30 },
         ]
+      };
+
+    // Save to MongoDB if connected
+    if (MONGODB_URI && mongoose.connection.readyState === 1) {
+      try {
+        const session = new PitchSession({
+          styleId,
+          overallScore: coachingResult.overallScore,
+          styleMatch: coachingResult.styleMatch,
+          segmentStrength,
+          trajectory: driftResult.trajectory,
+          gestureAnalysis: {
+            overallScore: gestureAnalysis.overallScore,
+            eyeContact: gestureAnalysis.eyeContact.percentage,
+            postureScore: gestureAnalysis.poseAnalysis.postureScore,
+            movementIntensity: gestureAnalysis.energyMetrics.movementIntensity,
+          },
+          structureAnalysis: {
+            score: keywordAnalysis.structureScore,
+            problemStatements: keywordAnalysis.problemStatements,
+            visionStatements: keywordAnalysis.visionStatements,
+            callToAction: keywordAnalysis.callToAction,
+          },
+          feedback: coachingResult.feedback,
+          radarData: resultData.radarData,
+        });
+        await session.save();
+        console.log('💾 Saved pitch session to MongoDB');
+      } catch (dbError) {
+        console.error('MongoDB save error:', dbError);
       }
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    }
+
+    return new Response(JSON.stringify({
 
   } catch (error) {
     console.error('Process pitch error:', error);
