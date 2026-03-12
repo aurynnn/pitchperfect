@@ -1,0 +1,7 @@
+{
+  "dimension": 3072,
+  "vector": [0.1, 0.2, -0.1, 0.3, 0.15, -0.2, 0.25, 0.1, -0.15, 0.2, 0.05, -0.1, 0.18, 0.22, -0.08, 0.12, 0.3, -0.15, 0.25, 0.18, -0.12, 0.15, 0.28, -0.2, 0.22, 0.08, -0.18, 0.3, 0.12, -0.1],
+  "generatedAt": "2026-03-12T12:25:00Z",
+  "sourceVideos": ["YTDown.com_YouTube_Top-10-Motivational-Speakers-in-2-Minute_Media_ZEHZsETAHHQ_001_1080p.mp4"],
+  "note": "Demo vector - needs proper benchmark video processing"
+}

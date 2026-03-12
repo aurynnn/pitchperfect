@@ -18,5 +18,9 @@
     "mediapipe": "^0.0.1-security",
     "svelte": "^5.53.10",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "tsx": "^4.21.0"
   }
 }
