@@ -1,0 +1,362 @@
+---
+import { loadStyles } from '../../actions/loadStyles';
+import CameraPreview from '../../components/CameraPreview.svelte';
+import Recorder from '../../components/Recorder.svelte';
+import StyleSelector from '../../components/StyleSelector.svelte';
+
+const url = new URL(Astro.request.url);
+const styleId = url.searchParams.get('style') || '';
+
+const styles = await loadStyles();
+const selectedStyle = styles.find(s => s.id === styleId) || styles[0];
+---
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Record Your Pitch - PitchPerfect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="/" class="back-link">← Back</a>
+      <h1>Record Your Pitch</h1>
+      <p class="selected-style">
+        Style: <strong>{selectedStyle?.name || 'Visionary'}</strong>
+      </p>
+    </header>
+
+    <main>
+      <div class="preview-section">
+        <CameraPreview client:load />
+      </div>
+
+      <div class="controls-section">
+        <div id="recorder-container">
+          <Recorder client:load />
+        </div>
+      </div>
+
+      <!-- Upload Progress -->
+      <div id="upload-progress" class="upload-section" style="display: none;">
+        <div class="progress-card">
+          <h3>Processing Your Pitch...</h3>
+          <div class="progress-steps">
+            <div class="step" id="step-upload">
+              <span class="step-icon">📤</span>
+              <span class="step-label">Uploading video</span>
+            </div>
+            <div class="step" id="step-analyze">
+              <span class="step-icon">🧠</span>
+              <span class="step-label">Analyzing style</span>
+            </div>
+            <div class="step" id="step-feedback">
+              <span class="step-icon">💡</span>
+              <span class="step-label">Generating feedback</span>
+            </div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <p class="progress-text" id="progress-text">Preparing...</p>
+        </div>
+      </div>
+
+      <!-- Results Redirect -->
+      <div id="results-redirect" class="redirect-section" style="display: none;">
+        <div class="success-card">
+          <span class="success-icon">✅</span>
+          <h3>Analysis Complete!</h3>
+          <p>Redirecting to your results...</p>
+        </div>
+      </div>
+
+      <div class="tips">
+        <h3>💡 Tips for a Great Pitch</h3>
+        <ul>
+          <li>Look at the camera, not the screen</li>
+          <li>Speak clearly and with conviction</li>
+          <li>Use hand gestures naturally</li>
+          <li>Start strong and end with a call to action</li>
+        </ul>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const styleId = new URLSearchParams(window.location.search).get('style') || 'visionary';
+    
+    // Wait for Recorder to be ready
+    let recorderReady = false;
+    let recordedBlob = null;
+    
+    // Custom event listener for recording complete
+    window.addEventListener('recording-complete', async (e) => {
+      recordedBlob = e.detail.blob;
+      await uploadAndProcess(recordedBlob);
+    });
+    
+    // Override Recorder's behavior
+    document.addEventListener('DOMContentLoaded', () => {
+      const checkRecorder = setInterval(() => {
+        const recorder = document.querySelector('recorder');
+        if (recorder) {
+          clearInterval(checkRecorder);
+          recorderReady = true;
+          
+          // Add custom handler
+          recorder.addEventListener('recorded', async (e) => {
+            recordedBlob = e.detail.blob;
+            await uploadAndProcess(recordedBlob);
+          });
+        }
+      }, 500);
+    });
+    
+    async function uploadAndProcess(blob) {
+      if (!blob) return;
+      
+      // Show progress
+      document.getElementById('recorder-container').style.display = 'none';
+      document.getElementById('upload-progress').style.display = 'block';
+      
+      try {
+        updateProgress(10, 'Uploading video...');
+        setStepActive('step-upload');
+        
+        const formData = new FormData();
+        formData.append('video', blob, 'pitch.webm');
+        formData.append('styleId', styleId);
+        
+        const response = await fetch('/api/process-pitch', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) {
+          throw new Error('Processing failed');
+        }
+        
+        updateProgress(50, 'Analyzing style...');
+        setStepActive('step-analyze');
+        
+        const data = await response.json();
+        
+        updateProgress(80, 'Generating feedback...');
+        setStepActive('step-feedback');
+        
+        // Store result in localStorage for results page
+        localStorage.setItem('pitchResult', JSON.stringify(data.result));
+        
+        updateProgress(100, 'Complete!');
+        
+        // Show success and redirect
+        document.getElementById('upload-progress').style.display = 'none';
+        document.getElementById('results-redirect').style.display = 'block';
+        
+        setTimeout(() => {
+          window.location.href = `/results/${data.result.id}`;
+        }, 1500);
+        
+      } catch (error) {
+        alert('Error: ' + error.message);
+        document.getElementById('recorder-container').style.display = 'block';
+        document.getElementById('upload-progress').style.display = 'none';
+      }
+    }
+    
+    function updateProgress(percent, text) {
+      document.getElementById('progress-fill').style.width = percent + '%';
+      document.getElementById('progress-text').textContent = text;
+    }
+    
+    function setStepActive(stepId) {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById(stepId)?.classList.add('active');
+    }
+  </script>
+</body>
+</html>
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+    min-height: 100vh;
+    color: #e2e8f0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: #94a3b8;
+    text-decoration: none;
+    margin-bottom: 16px;
+    transition: color 0.2s;
+  }
+
+  .back-link:hover {
+    color: #e2e8f0;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .selected-style {
+    color: #94a3b8;
+    font-size: 1.1rem;
+  }
+
+  .selected-style strong {
+    color: #a5b4fc;
+  }
+
+  main {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .preview-section, .controls-section {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 24px;
+  }
+
+  .tips {
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+  }
+
+  .tips h3 {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    color: #a5b4fc;
+  }
+
+  .tips ul {
+    list-style: none;
+    display: grid;
+    gap: 8px;
+  }
+
+  .tips li {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    padding-left: 20px;
+    position: relative;
+  }
+
+  .tips li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #6366f1;
+  }
+
+  /* Progress Styles */
+  .upload-section, .redirect-section {
+    text-align: center;
+  }
+
+  .progress-card, .success-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 40px;
+  }
+
+  .progress-card h3, .success-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 24px;
+  }
+
+  .progress-steps {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 24px;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+  }
+
+  .step.active {
+    opacity: 1;
+  }
+
+  .step-icon {
+    font-size: 2rem;
+  }
+
+  .step-label {
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+
+  .progress-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #a855f7);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  .progress-text {
+    color: #94a3b8;
+    font-size: 0.95rem;
+  }
+
+  .success-card {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+
+  .success-icon {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: 16px;
+  }
+</style>

@@ -1,0 +1,532 @@
+---
+import RadarChart from '../../components/charts/RadarChart.svelte';
+import DriftChart from '../../components/charts/DriftChart.svelte';
+import { getScoreColor } from '../../lib/feedback/rules';
+
+// Server-side mock data (fallback)
+const mockData = {
+  id: 'demo-123',
+  styleName: 'Visionary',
+  overallScore: 78,
+  styleMatch: 0.78,
+  summary: 'Great job! Your pitch aligns 78% with the Visionary style. Your opening is strong, but there are some consistency issues in the middle.',
+  segmentStrength: {
+    intro: 0.85,
+    middle: 0.68,
+    close: 0.82,
+    overall: 0.78,
+  },
+  radarData: [
+    { axis: 'Authority', value: 82 },
+    { axis: 'Energy', value: 75 },
+    { axis: 'Clarity', value: 88 },
+    { axis: 'Gestures', value: 70 },
+    { axis: 'Emotional', value: 78 },
+  ],
+  trajectory: [
+    { time: 0, similarity: 0.85 },
+    { time: 10, similarity: 0.82 },
+    { time: 20, similarity: 0.78 },
+    { time: 30, similarity: 0.72 },
+    { time: 40, similarity: 0.65 },
+    { time: 50, similarity: 0.68 },
+    { time: 60, similarity: 0.75 },
+    { time: 70, similarity: 0.80 },
+    { time: 80, similarity: 0.82 },
+  ],
+  feedback: [
+    {
+      type: 'strength',
+      category: 'Opening',
+      title: 'Strong Opening',
+      message: 'Your pitch starts with excellent style alignment. Great first impression!',
+    },
+    {
+      type: 'improvement',
+      category: 'Body',
+      title: 'Stay Consistent',
+      message: 'Your middle section shows some drift. Try to maintain the same energy throughout.',
+    },
+    {
+      type: 'warning',
+      category: 'Consistency',
+      title: 'Style Drift Detected',
+      message: 'Found moments where your style drops around 30-50 seconds.',
+    },
+  ],
+};
+
+const { id: pageId } = Astro.params;
+
+// Client-side data will be loaded via JavaScript
+---
+
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Results - PitchPerfect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="/" class="back-link">← New Pitch</a>
+      <h1>Your Results</h1>
+    </header>
+
+    <main id="results-content">
+      <!-- Loading State -->
+      <div class="loading-card">
+        <div class="spinner"></div>
+        <p>Loading your results...</p>
+      </div>
+    </main>
+  </div>
+
+  <script define:vars={{ mockData }}>
+    // Try to get data from localStorage first
+    let data = null;
+    
+    try {
+      const stored = localStorage.getItem('pitchResult');
+      if (stored) {
+        data = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.log('Using mock data');
+    }
+    
+    // Fallback to mock data
+    data = data || mockData;
+    
+    // Render results
+    const container = document.getElementById('results-content');
+    
+    const scoreColor = getScoreColor(data.overallScore);
+    
+    container.innerHTML = `
+      <!-- Score Card -->
+      <div class="score-card">
+        <div class="score-circle" style="--score-color: ${scoreColor}">
+          <span class="score-value">${data.overallScore}</span>
+          <span class="score-label">Score</span>
+        </div>
+        <div class="score-info">
+          <h2>Primary Style: ${data.styleName}</h2>
+          <p class="match">${Math.round(data.styleMatch * 100)}% match</p>
+          <p class="summary">${data.summary}</p>
+        </div>
+      </div>
+
+      <!-- Segment Breakdown -->
+      <div class="segments-card">
+        <h3>Segment Analysis</h3>
+        <div class="segments">
+          <div class="segment">
+            <span class="segment-label">Opening</span>
+            <div class="segment-bar">
+              <div class="segment-fill" style="width: ${data.segmentStrength.intro * 100}%; background: ${getScoreColor(data.segmentStrength.intro * 100)}"></div>
+            </div>
+            <span class="segment-value">${Math.round(data.segmentStrength.intro * 100)}%</span>
+          </div>
+          <div class="segment">
+            <span class="segment-label">Body</span>
+            <div class="segment-bar">
+              <div class="segment-fill" style="width: ${data.segmentStrength.middle * 100}%; background: ${getScoreColor(data.segmentStrength.middle * 100)}"></div>
+            </div>
+            <span class="segment-value">${Math.round(data.segmentStrength.middle * 100)}%</span>
+          </div>
+          <div class="segment">
+            <span class="segment-label">Closing</span>
+            <div class="segment-bar">
+              <div class="segment-fill" style="width: ${data.segmentStrength.close * 100}%; background: ${getScoreColor(data.segmentStrength.close * 100)}"></div>
+            </div>
+            <span class="segment-value">${Math.round(data.segmentStrength.close * 100)}%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Style Attributes</h3>
+          <div id="radar-chart-container"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Similarity Over Time</h3>
+          <div id="drift-chart-container"></div>
+        </div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="feedback-section">
+        <h3>Coaching Feedback</h3>
+        <div class="feedback-list">
+          ${data.feedback.map(item => `
+            <div class="feedback-item ${item.type}">
+              <span class="feedback-icon">
+                ${item.type === 'strength' ? '✅' : item.type === 'improvement' ? '💡' : '⚠️'}
+              </span>
+              <div class="feedback-content">
+                <h4>${item.title}</h4>
+                <p>${item.message}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    
+    // Render charts using the Svelte components via custom elements
+    // For now, use simple SVG charts as fallback
+    renderRadarChart(data.radarData);
+    renderDriftChart(data.trajectory);
+    
+    function getScoreColor(score) {
+      if (score >= 80) return '#10b981';
+      if (score >= 60) return '#f59e0b';
+      if (score >= 40) return '#f97316';
+      return '#ef4444';
+    }
+    
+    function renderRadarChart(data) {
+      const container = document.getElementById('radar-chart-container');
+      if (!container) return;
+      
+      const size = 280;
+      const center = size / 2;
+      const radius = 100;
+      const levels = 5;
+      
+      let svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
+      
+      // Draw grid
+      for (let l = 1; l <= levels; l++) {
+        const r = (radius / levels) * l;
+        svg += `<circle cx="${center}" cy="${center}" r="${r}" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>`;
+      }
+      
+      // Draw axes and data
+      const angleSlice = (Math.PI * 2) / data.length;
+      
+      data.forEach((d, i) => {
+        const angle = angleSlice * i - Math.PI / 2;
+        const x = center + Math.cos(angle) * radius;
+        const y = center + Math.sin(angle) * radius;
+        const vx = center + Math.cos(angle) * (radius * d.value / 100);
+        const vy = center + Math.sin(angle) * (radius * d.value / 100);
+        
+        // Axis line
+        svg += `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>`;
+        
+        // Label
+        const lx = center + Math.cos(angle) * (radius + 25);
+        const ly = center + Math.sin(angle) * (radius + 25);
+        svg += `<text x="${lx}" y="${ly}" text-anchor="middle" fill="#94a3b8" font-size="12">${d.axis}</text>`;
+      });
+      
+      // Draw data polygon
+      const points = data.map((d, i) => {
+        const angle = angleSlice * i - Math.PI / 2;
+        const r = radius * d.value / 100;
+        return `${center + Math.cos(angle) * r},${center + Math.sin(angle) * r}`;
+      }).join(' ');
+      
+      svg += `<polygon points="${points}" fill="rgba(99, 102, 241, 0.3)" stroke="#6366f1" stroke-width="2"/>`;
+      
+      // Draw points
+      data.forEach((d, i) => {
+        const angle = angleSlice * i - Math.PI / 2;
+        const r = radius * d.value / 100;
+        const x = center + Math.cos(angle) * r;
+        const y = center + Math.sin(angle) * r;
+        svg += `<circle cx="${x}" cy="${y}" r="5" fill="#fff" stroke="#6366f1" stroke-width="2"/>`;
+      });
+      
+      svg += '</svg>';
+      container.innerHTML = svg;
+    }
+    
+    function renderDriftChart(data) {
+      const container = document.getElementById('drift-chart-container');
+      if (!container) return;
+      
+      const width = 350;
+      const height = 180;
+      const margin = { top: 20, right: 20, bottom: 30, left: 40 };
+      const innerWidth = width - margin.left - margin.right;
+      const innerHeight = height - margin.top - margin.bottom;
+      
+      const maxTime = Math.max(...data.map(d => d.time));
+      
+      const x = (t) => margin.left + (t / maxTime) * innerWidth;
+      const y = (s) => margin.top + innerHeight - (s * innerHeight);
+      
+      let svg = `<svg width="${width}" height="${height}">`;
+      
+      // Grid lines
+      [0.5, 0.7].forEach(threshold => {
+        svg += `<line x1="${margin.left}" x2="${width - margin.right}" y1="${y(threshold)}" y2="${y(threshold)}" stroke="${threshold === 0.5 ? '#f97316' : '#10b981'}" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>`;
+      });
+      
+      // Area
+      const areaPoints = data.map(d => `${x(d.time)},${y(d.similarity)}`).join(' ');
+      svg += `<polygon points="${areaPoints},${x(data[data.length-1].time)},${y(0)},${x(0)},${y(0)}" fill="rgba(99, 102, 241, 0.2)"/>`;
+      
+      // Line
+      const linePoints = data.map(d => `${x(d.time)},${y(d.similarity)}`).join(' ');
+      svg += `<polyline points="${linePoints}" fill="none" stroke="#6366f1" stroke-width="3"/>`;
+      
+      // Points
+      data.forEach(d => {
+        svg += `<circle cx="${x(d.time)}" cy="${y(d.similarity)}" r="4" fill="#fff" stroke="#6366f1" stroke-width="2"/>`;
+      });
+      
+      // Axes
+      svg += `<line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${height - margin.bottom}" stroke="#64748b"/>`;
+      svg += `<line x1="${margin.left}" y1="${height - margin.bottom}" x2="${width - margin.right}" y2="${height - margin.bottom}" stroke="#64748b"/>`;
+      
+      // Labels
+      svg += `<text x="${margin.left}" y="${height - 5}" fill="#64748b" font-size="11">0s</text>`;
+      svg += `<text x="${width - margin.right}" y="${height - 5}" fill="#64748b" font-size="11">${maxTime}s</text>`;
+      svg += `<text x="${margin.left - 5}" y="${margin.top + 10}" fill="#64748b" font-size="11">100%</text>`;
+      svg += `<text x="${margin.left - 5}" y="${height - margin.bottom - 5}" fill="#64748b" font-size="11">0%</text>`;
+      
+      svg += '</svg>';
+      container.innerHTML = svg;
+    }
+  </script>
+</body>
+</html>
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+    min-height: 100vh;
+    color: #e2e8f0;
+    padding: 40px 20px;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: #94a3b8;
+    text-decoration: none;
+    margin-bottom: 16px;
+  }
+
+  .back-link:hover {
+    color: #e2e8f0;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .loading-card {
+    text-align: center;
+    padding: 80px 20px;
+  }
+
+  .spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(99, 102, 241, 0.3);
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .score-card {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+
+  .score-circle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 4px solid var(--score-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .score-value {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--score-color);
+  }
+
+  .score-label {
+    font-size: 0.9rem;
+    color: #94a3b8;
+  }
+
+  .score-info h2 {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+  }
+
+  .match {
+    color: #a5b4fc;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+  }
+
+  .summary {
+    color: #94a3b8;
+    line-height: 1.6;
+  }
+
+  .segments-card, .chart-card, .feedback-section {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .segments-card h3, .chart-card h3, .feedback-section h3 {
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+  }
+
+  .segments {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .segment {
+    display: grid;
+    grid-template-columns: 80px 1fr 50px;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .segment-label {
+    font-size: 0.95rem;
+    color: #94a3b8;
+  }
+
+  .segment-bar {
+    height: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .segment-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.5s ease;
+  }
+
+  .segment-value {
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .chart-card {
+    text-align: center;
+  }
+
+  .chart-card h3 {
+    margin-bottom: 16px;
+  }
+
+  #radar-chart-container, #drift-chart-container {
+    display: flex;
+    justify-content: center;
+  }
+
+  .feedback-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .feedback-item {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .feedback-item.strength {
+    border-left: 3px solid #10b981;
+  }
+
+  .feedback-item.improvement {
+    border-left: 3px solid #f59e0b;
+  }
+
+  .feedback-item.warning {
+    border-left: 3px solid #f97316;
+  }
+
+  .feedback-icon {
+    font-size: 1.5rem;
+  }
+
+  .feedback-content h4 {
+    font-size: 1rem;
+    margin-bottom: 4px;
+  }
+
+  .feedback-content p {
+    font-size: 0.9rem;
+    color: #94a3b8;
+    line-height: 1.5;
+  }
+</style>

@@ -1,17 +1,235 @@
 ---
+import { loadStyles } from '../actions/loadStyles';
 
+const styles = await loadStyles();
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PitchPerfect - Master Your Pitch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>PitchPerfect</h1>
+      <p class="tagline">Master Your Pitch with AI</p>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h2>Choose Your Speaking Style</h2>
+        <p>Select the style you want to emulate for your pitch</p>
+      </section>
+
+      <div class="styles-grid">
+        {styles.map(style => (
+          <a href={`/record?style=${style.id}`} class="style-card">
+            <div class="style-icon">
+              {style.id === 'visionary' && '✨'}
+              {style.id === 'storyteller' && '📖'}
+              {style.id === 'closer' && '🎯'}
+            </div>
+            <h3>{style.name}</h3>
+            <p>{style.description}</p>
+            <div class="traits">
+              <span class="trait">⚡ {style.traits.energy}</span>
+              <span class="trait">🎵 {style.traits.pace}</span>
+              <span class="trait">👋 {style.traits.gestures}</span>
+            </div>
+          </a>
+        ))}
+      </div>
+
+      <section class="how-it-works">
+        <h2>How It Works</h2>
+        <div class="steps">
+          <div class="step">
+            <span class="step-num">1</span>
+            <h3>Select Style</h3>
+            <p>Choose the speaking style you want to emulate</p>
+          </div>
+          <div class="step">
+            <span class="step-num">2</span>
+            <h3>Record Pitch</h3>
+            <p>Record up to 80 seconds of your pitch</p>
+          </div>
+          <div class="step">
+            <span class="step-num">3</span>
+            <h3>Get Feedback</h3>
+            <p>AI analyzes your style match and provides coaching</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
 </html>
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+    min-height: 100vh;
+    color: #e2e8f0;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+
+  h1 {
+    font-size: 4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .tagline {
+    font-size: 1.25rem;
+    color: #94a3b8;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .hero h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .hero p {
+    color: #94a3b8;
+    font-size: 1.1rem;
+  }
+
+  .styles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 80px;
+  }
+
+  .style-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 32px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+  }
+
+  .style-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #6366f1;
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
+  }
+
+  .style-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+  }
+
+  .style-card h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .style-card p {
+    color: #94a3b8;
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .traits {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .trait {
+    background: rgba(99, 102, 241, 0.2);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: #a5b4fc;
+  }
+
+  .how-it-works {
+    text-align: center;
+  }
+
+  .how-it-works h2 {
+    font-size: 2rem;
+    margin-bottom: 40px;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+  }
+
+  @media (max-width: 768px) {
+    .steps {
+      grid-template-columns: 1fr;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+    }
+  }
+
+  .step {
+    padding: 24px;
+  }
+
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    border-radius: 50%;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .step h3 {
+    font-size: 1.25rem;
+    margin-bottom: 8px;
+  }
+
+  .step p {
+    color: #94a3b8;
+    font-size: 0.95rem;
+  }
+</style>
