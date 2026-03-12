@@ -3,6 +3,8 @@
 import { uploadVideoToGemini, generateEmbedding, waitForFileReady, generateMRLEmbedding } from '../../lib/ai/gemini';
 import { cosineSimilarity, calculateDrift, analyzeSegmentStrength } from '../../lib/analysis/similarity';
 import { generateFeedback } from '../../lib/feedback/rules';
+import { analyzeGestures } from '../../lib/analysis/gestures';
+import { analyzeKeywords } from '../../lib/analysis/keywords';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -62,6 +64,12 @@ export const POST = async ({ request }) => {
 
     const coachingResult = generateFeedback(similarityResults, driftResult, segmentStrength);
 
+    // Run gesture analysis (simulated for now)
+    const gestureAnalysis = await analyzeGestures(videoBlob);
+    
+    // Run keyword/structure analysis (simulated for now)  
+    const keywordAnalysis = await analyzeKeywords(videoBlob);
+
     // Clean up temp file
     fs.unlinkSync(tempPath);
 
@@ -76,11 +84,25 @@ export const POST = async ({ request }) => {
         segmentStrength,
         feedback: coachingResult.feedback,
         trajectory: driftResult.trajectory,
+        // Gesture analysis results
+        gestureAnalysis: {
+          overallScore: gestureAnalysis.overallScore,
+          eyeContact: gestureAnalysis.eyeContact.percentage,
+          postureScore: gestureAnalysis.poseAnalysis.postureScore,
+          movementIntensity: gestureAnalysis.energyMetrics.movementIntensity,
+        },
+        // Structure analysis
+        structureAnalysis: {
+          score: keywordAnalysis.structureScore,
+          problemStatements: keywordAnalysis.problemStatements,
+          visionStatements: keywordAnalysis.visionStatements,
+          callToAction: keywordAnalysis.callToAction,
+        },
         radarData: [
           { axis: 'Authority', value: 70 + Math.random() * 30 },
           { axis: 'Energy', value: 60 + Math.random() * 40 },
           { axis: 'Clarity', value: 75 + Math.random() * 25 },
-          { axis: 'Gestures', value: 65 + Math.random() * 35 },
+          { axis: 'Gestures', value: gestureAnalysis.overallScore * 100 },
           { axis: 'Emotional', value: 70 + Math.random() * 30 },
         ]
       }

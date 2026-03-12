@@ -27,12 +27,12 @@
 - [x] Drift timeline
 
 ### Phase 10: Explainability
-- [ ] MediaPipe gesture tracking
-- [ ] Keyword density
+- [x] MediaPipe gesture tracking
+- [x] Keyword density
 
 ### Phase 11: Coaching
 - [x] Rule engine (lib/feedback/rules.ts)
-- [ ] AI coaching layer
+- [x] AI coaching layer
 
 ### Phase 12: Results Dashboard
 - [x] RadarChart.svelte
@@ -45,10 +45,10 @@
 - [x] Results page with localStorage data
 
 ### Testing & Polish
-- [ ] Test full flow
-- [ ] Fix bugs
-- [ ] UI improvements
-- [ ] Performance tuning
+- [x] Test full flow
+- [x] Fix bugs
+- [x] UI improvements
+- [x] Performance tuning
 
 ---
 
